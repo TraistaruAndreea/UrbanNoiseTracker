@@ -6,7 +6,7 @@ import AnalyticsPage from "../features/analytics/AnalyticsPage";
 import RequireAuth from "./RequireAuth";
 
 export const router = createBrowserRouter([
-  { path: "/", element: <RequireAuth><MapPage /></RequireAuth> },
+  { path: "/", element: <MapPage /> },
   { path: "/login", element: <Login /> },
   { path: "/register", element: <Register /> },
   { path: "/analytics", element: <RequireAuth><AnalyticsPage /></RequireAuth> },

@@ -1,7 +1,12 @@
 import { useEffect, useRef } from "react";
+
 import Map from "@arcgis/core/Map";
 import MapView from "@arcgis/core/views/MapView";
 import FeatureLayer from "@arcgis/core/layers/FeatureLayer";
+
+import OAuthInfo from "@arcgis/core/identity/OAuthInfo";
+import IdentityManager from "@arcgis/core/identity/IdentityManager";
+import esriConfig from "@arcgis/core/config";
 
 export default function ArcGisMap() {
   const divRef = useRef<HTMLDivElement | null>(null);
@@ -9,39 +14,66 @@ export default function ArcGisMap() {
   useEffect(() => {
     if (!divRef.current) return;
 
-    const map = new Map({
-      basemap: "osm",
-    });
+    let view: MapView | null = null;
 
-    const view = new MapView({
-      container: divRef.current,
-      map,
-      center: [26.1, 44.43],
-      zoom: 12,
-    });
+    async function init() {
+      try {
+        // 🌍 Portal
+        esriConfig.portalUrl = "https://www.arcgis.com";
 
-    const userReportsLayer = new FeatureLayer({
-      url: "https://andreeat.maps.arcgis.com/home/item.html?id=a57e16440d134ce9b5718bc65a35a678/0",
-      outFields: ["*"],
-      popupTemplate: {
-        title: "Raport zgomot",
-        content: `
-          Categorie: {category}<br/>
-          dB: {decibels}<br/>
-          User: {userId}<br/>
-          Timp: {timestamp}
-        `,
-      },
-    });
+        // 🔐 OAuth config
+        const oauthInfo = new OAuthInfo({
+          appId: import.meta.env.VITE_ARCGIS_CLIENT_ID,
+          portalUrl: "https://www.arcgis.com",
+          popup: false, // 🔑 redirect full-page, NU popup
+        });
 
-    map.add(userReportsLayer);
+        IdentityManager.registerOAuthInfos([oauthInfo]);
 
-    view.when(() => {
-      console.log("✅ FeatureLayer încărcat");
-    });
+        // 🔑 Authenticate (silent if already logged in)
+        await IdentityManager.getCredential("https://www.arcgis.com");
+        console.log("✅ ArcGIS authenticated");
+
+        // 🗺️ Map
+        const map = new Map({
+          basemap: "osm",
+        });
+
+        view = new MapView({
+          container: divRef.current!,
+          map,
+          center: [26.1, 44.43],
+          zoom: 12,
+        });
+
+        // 📍 Feature Layer (private or public)
+        const userReportsLayer = new FeatureLayer({
+          url: import.meta.env.VITE_ARCGIS_LAYER_USER_REPORTS_URL,
+          outFields: ["*"],
+          popupTemplate: {
+            title: "Raport zgomot",
+            content: `
+              Categorie: {category}<br/>
+              dB: {decibels}<br/>
+              User: {userId}<br/>
+              Timp: {reportTimestamp}
+            `,
+          },
+        });
+
+        map.add(userReportsLayer);
+
+        await view.when();
+        console.log("🗺️ Harta încărcată complet");
+      } catch (err) {
+        console.error("❌ ArcGIS init failed", err);
+      }
+    }
+
+    init();
 
     return () => {
-      view.destroy();
+      view?.destroy();
     };
   }, []);
 
