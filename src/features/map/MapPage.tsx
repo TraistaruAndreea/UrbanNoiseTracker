@@ -1,4 +1,5 @@
 import ArcGisMap from "./ArcGisMap";
+import "./mapForms.css";
 import ReportForm from "./ReportForm";
 import QuietZoneForm from "./QuietZonesForm";
 import { Link } from "react-router-dom";

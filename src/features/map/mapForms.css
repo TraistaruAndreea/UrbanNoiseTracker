@@ -1,0 +1,51 @@
+.map-forms {
+  font-family: Inter, system-ui, Arial, sans-serif;
+}
+
+.map-forms h3 {
+  margin: 0 0 8px 0;
+  font-size: 1.05rem;
+}
+
+.map-forms .form-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.map-forms label {
+  width: 90px;
+  font-weight: 600;
+  color: #222;
+}
+
+.map-forms input[type="number"],
+.map-forms input[type="text"],
+.map-forms input,
+.map-forms select {
+  flex: 1 1 auto;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: none;
+  background: #2f2f2f;
+  color: #fff;
+}
+
+.map-forms button {
+  padding: 8px 14px;
+  background: #111;
+  color: #fff;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+}
+
+.map-forms .form-row > button {
+  margin-left: 8px;
+}
+
+.map-forms p {
+  margin: 8px 0 0 0;
+  color: #333;
+}

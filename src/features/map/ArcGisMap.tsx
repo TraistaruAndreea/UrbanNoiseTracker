@@ -18,23 +18,20 @@ export default function ArcGisMap() {
 
     async function init() {
       try {
-        // 🌍 Portal
         esriConfig.portalUrl = "https://www.arcgis.com";
 
-        // 🔐 OAuth config
+
         const oauthInfo = new OAuthInfo({
           appId: import.meta.env.VITE_ARCGIS_CLIENT_ID,
           portalUrl: "https://www.arcgis.com",
-          popup: false, // 🔑 redirect full-page, NU popup
+          popup: false,
         });
 
         IdentityManager.registerOAuthInfos([oauthInfo]);
 
-        // 🔑 Authenticate (silent if already logged in)
         await IdentityManager.getCredential("https://www.arcgis.com");
-        console.log("✅ ArcGIS authenticated");
+        console.log(" ArcGIS authenticated");
 
-        // 🗺️ Map
         const map = new Map({
           basemap: "osm",
         });
@@ -46,7 +43,7 @@ export default function ArcGisMap() {
           zoom: 12,
         });
 
-        // 📍 Feature Layer (private or public)
+
         const userReportsLayer = new FeatureLayer({
           url: import.meta.env.VITE_ARCGIS_LAYER_USER_REPORTS_URL,
           outFields: ["*"],
@@ -64,9 +61,9 @@ export default function ArcGisMap() {
         map.add(userReportsLayer);
 
         await view.when();
-        console.log("🗺️ Harta încărcată complet");
+        console.log("Harta încărcată complet");
       } catch (err) {
-        console.error("❌ ArcGIS init failed", err);
+        console.error(" ArcGIS init failed", err);
       }
     }
 

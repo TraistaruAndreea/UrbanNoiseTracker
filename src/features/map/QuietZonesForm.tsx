@@ -26,22 +26,34 @@ export default function QuietZoneForm() {
   };
 
   return (
-    <div>
+    <div className="map-forms">
       <h3>Adaugă zonă liniștită</h3>
 
-      <label>Lat</label>
-      <input type="number" value={lat} onChange={e => setLat(+e.target.value)} />
+      <div className="form-row">
+        <label>Lat</label>
+        <input type="number" value={lat} onChange={e => setLat(+e.target.value)} />
+      </div>
 
-      <label>Lon</label>
-      <input type="number" value={lon} onChange={e => setLon(+e.target.value)} />
+      <div className="form-row">
+        <label>Lon</label>
+        <input type="number" value={lon} onChange={e => setLon(+e.target.value)} />
+      </div>
 
-      <label>Scor (1-5)</label>
-      <input type="number" value={score} min={1} max={5} onChange={e => setScore(+e.target.value)} />
+      <div className="form-row">
+        <label>Scor (1-5)</label>
+        <input type="number" value={score} min={1} max={5} onChange={e => setScore(+e.target.value)} />
+      </div>
 
-      <label>Descriere</label>
-      <input value={description} onChange={e => setDescription(e.target.value)} />
+      <div className="form-row">
+        <label>Descriere</label>
+        <input value={description} onChange={e => setDescription(e.target.value)} />
+      </div>
 
-      <button onClick={submit}>Salvează</button>
+      <div className="form-row">
+        <div style={{ flex: 1 }} />
+        <button onClick={submit}>Salvează</button>
+      </div>
+
       <p>{status}</p>
     </div>
   );

@@ -28,28 +28,40 @@ export default function ReportForm() {
   };
 
   return (
-    <div>
+    <div className="map-forms">
       <h3>Raportează zgomot</h3>
 
-      <label>Lat</label>
-      <input type="number" value={lat} onChange={e => setLat(+e.target.value)} />
+      <div className="form-row">
+        <label>Lat</label>
+        <input type="number" value={lat} onChange={e => setLat(+e.target.value)} />
+      </div>
 
-      <label>Lon</label>
-      <input type="number" value={lon} onChange={e => setLon(+e.target.value)} />
+      <div className="form-row">
+        <label>Lon</label>
+        <input type="number" value={lon} onChange={e => setLon(+e.target.value)} />
+      </div>
 
-      <label>Categorie</label>
-      <select value={category} onChange={e => setCategory(e.target.value as NoiseCategory)}>
-        <option value="trafic">Trafic</option>
-        <option value="santier">Șantier</option>
-        <option value="muzica">Muzică</option>
-        <option value="eveniment">Eveniment</option>
-        <option value="altul">Altul</option>
-      </select>
+      <div className="form-row">
+        <label>Categorie</label>
+        <select value={category} onChange={e => setCategory(e.target.value as NoiseCategory)}>
+          <option value="trafic">Trafic</option>
+          <option value="santier">Șantier</option>
+          <option value="muzica">Muzică</option>
+          <option value="eveniment">Eveniment</option>
+          <option value="altul">Altul</option>
+        </select>
+      </div>
 
-      <label>dB (simulat)</label>
-      <input type="number" value={decibels} onChange={e => setDecibels(+e.target.value)} />
+      <div className="form-row">
+        <label>dB (simulat)</label>
+        <input type="number" value={decibels} onChange={e => setDecibels(+e.target.value)} />
+      </div>
 
-      <button onClick={submit}>Trimite</button>
+      <div className="form-row">
+        <div style={{ flex: 1 }} />
+        <button onClick={submit}>Trimite</button>
+      </div>
+
       <p>{status}</p>
     </div>
   );

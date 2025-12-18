@@ -16,12 +16,17 @@ export default function Register() {
     setStatus("");
     try {
       const cred = await register(email, pass);
-      await createUserDoc({
-        id: cred.user.uid,
-        name,
-        role: "user",
-        favoriteZones: [],
-      });
+      try {
+        await createUserDoc({
+          id: cred.user.uid,
+          name,
+          role: "user",
+          favoriteZones: [],
+        });
+      } catch (innerErr: any) {
+        console.warn("createUserDoc failed (ignored):", innerErr);
+      }
+
       setStatus("Cont creat. Te redirecționez la login...");
       setTimeout(() => navigate("/login"), 700);
     } catch (e: any) {
