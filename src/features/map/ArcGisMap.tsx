@@ -1,8 +1,7 @@
 import { useEffect, useRef } from "react";
 
-import Map from "@arcgis/core/Map";
+import WebMap from "@arcgis/core/WebMap";
 import MapView from "@arcgis/core/views/MapView";
-import FeatureLayer from "@arcgis/core/layers/FeatureLayer";
 
 import OAuthInfo from "@arcgis/core/identity/OAuthInfo";
 import IdentityManager from "@arcgis/core/identity/IdentityManager";
@@ -20,7 +19,6 @@ export default function ArcGisMap() {
       try {
         esriConfig.portalUrl = "https://www.arcgis.com";
 
-
         const oauthInfo = new OAuthInfo({
           appId: import.meta.env.VITE_ARCGIS_CLIENT_ID,
           portalUrl: "https://www.arcgis.com",
@@ -28,42 +26,33 @@ export default function ArcGisMap() {
         });
 
         IdentityManager.registerOAuthInfos([oauthInfo]);
-
         await IdentityManager.getCredential("https://www.arcgis.com");
-        console.log(" ArcGIS authenticated");
 
-        const map = new Map({
-          basemap: "osm",
-        });
+        console.log("✅ ArcGIS authenticated");
 
-        view = new MapView({
-          container: divRef.current!,
-          map,
-          center: [26.1, 44.43],
-          zoom: 12,
-        });
-
-
-        const userReportsLayer = new FeatureLayer({
-          url: import.meta.env.VITE_ARCGIS_LAYER_USER_REPORTS_URL,
-          outFields: ["*"],
-          popupTemplate: {
-            title: "Raport zgomot",
-            content: `
-              Categorie: {category}<br/>
-              dB: {decibels}<br/>
-              User: {userId}<br/>
-              Timp: {reportTimestamp}
-            `,
+        // 🔹 WEBMAP
+        const webmap = new WebMap({
+          portalItem: {
+            id: "214b24b9b3614049bc64254e3fc42b76",
           },
         });
 
-        map.add(userReportsLayer);
+        view = new MapView({
+          container: divRef.current,
+          map: webmap,
+        });
 
         await view.when();
-        console.log("Harta încărcată complet");
+        console.log("✅ WebMap încărcată complet");
+
+        // (opțional) accesezi un FeatureLayer din WebMap
+        const userReportsLayer = webmap.layers.find(
+          (layer) => layer.type === "feature"
+        );
+
+        console.log("FeatureLayer:", userReportsLayer);
       } catch (err) {
-        console.error(" ArcGIS init failed", err);
+        console.error("❌ ArcGIS init failed", err);
       }
     }
 
