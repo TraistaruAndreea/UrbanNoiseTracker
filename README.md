@@ -32,3 +32,62 @@ Această variantă folosește Firebase Auth și respectă regulile Firestore. Co
 Rulează:
 - `npm run import:noiseReports:user`
 
+
+Statistici orare (Firestore: `statisticiOrare`)
+=============================================
+
+Scriptul calculează statistici pe oră din colecția `noiseReports` și scrie în `statisticiOrare` documente cu câmpurile:
+`dominantCategory`, `minNoise`, `maxNoise`, `sampleCount`, `timestamp`, `zoneId`, `id`.
+
+Necesită service account (admin):
+- `GOOGLE_APPLICATION_CREDENTIALS=...` (sau `FIREBASE_ADMIN_CREDENTIALS_PATH` / `FIREBASE_ADMIN_CREDENTIALS_JSON`)
+
+Rulează:
+- `npm run compute:statisticiOrare`
+
+Opțional:
+- interval: `node scripts/computeHourlyStats.mjs --start=2024-06-01T00:00:00 --end=2024-06-02T00:00:00`
+- dry-run: `node scripts/computeHourlyStats.mjs --dry-run`
+
+ZoneId automat (grid)
+---------------------
+
+Dacă rapoartele nu au `zoneId`, scriptul poate calcula automat un `zoneId` din coordonate (grid). Implicit `zoneMode=grid`.
+
+- schimbă dimensiunea grilei (grade): `node scripts/computeHourlyStats.mjs --gridDeg=0.01` (≈1.1km)
+- dezactivează zonarea: `node scripts/computeHourlyStats.mjs --zoneMode=none`
+
+
+Grafana local (fără Billing) — CSV
+=================================
+
+Scop: pui un CSV în folderul `exports/`, iar Grafana (cu pluginul Infinity) îl citește prin URL.
+
+1) Pune CSV-ul în proiect
+------------------------
+
+- Copiază fișierul CSV în folderul `exports/` (ex: `exports/noiseReports.csv`).
+
+2) Pornește Grafana + serverul de CSV (Docker)
+----------------------------------------------
+
+Rulează:
+- `docker compose -f docker-compose.grafana.yml up -d`
+
+Grafana:
+- `http://localhost:3001` (user/parolă: `admin` / `admin`)
+
+CSV (test în browser):
+- `http://localhost:8082/noiseReports.csv`
+
+3) Configurează Infinity datasource
+----------------------------------
+
+- Connections → Data sources → Add data source → **Infinity**
+- Type: **CSV**
+- Parser: **Backend**
+- URL: `http://exports/noiseReports.csv`
+
+Note:
+- Folosește `http://exports/...` (numele serviciului din docker compose). Asta evită problemele cu `host.docker.internal`.
+

@@ -15,7 +15,7 @@ const cleanEnv = (value) => {
   return trimmed;
 };
 
-const jsonPath = new URL("./noiseReports_import.json", import.meta.url);
+const jsonPath = new URL("./noiseReports_timeseries_sample.json", import.meta.url);
 const data = JSON.parse(await fs.readFile(jsonPath, "utf8"));
 
 const canUseAdmin =

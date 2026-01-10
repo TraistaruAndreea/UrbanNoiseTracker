@@ -10,6 +10,9 @@
     "import:noiseReports": "node import-json.js",
     "import:noiseReports:admin": "node import-json.js --mode=admin",
     "import:noiseReports:user": "node import-json.js --mode=user",
+    "serve:exports": "node scripts/serveExports.mjs --port=8080",
+    "compute:statisticiOrare": "node scripts/computeHourlyStats.mjs",
+    "export:statisticiOrare": "node scripts/exportStatisticiOrareToCsv.mjs --out=exports/statisticiOrare.csv",
     "preview": "vite preview"
   },
   "dependencies": {

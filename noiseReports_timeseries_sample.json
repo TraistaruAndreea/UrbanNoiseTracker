@@ -1,0 +1,302 @@
+[
+  {
+    "userId": "PMB_2024",
+    "category": "traffic",
+    "noiseLevel": 5,
+    "reportTimestamp": "2024-06-01T12:00:00",
+    "location": {
+      "latitude": 44.414254011884736,
+      "longitude": 26.07098544555255
+    }
+  },
+  {
+    "userId": "PMB_2024",
+    "category": "traffic",
+    "noiseLevel": 5,
+    "reportTimestamp": "2024-06-01T12:00:00",
+    "location": {
+      "latitude": 44.471871430641,
+      "longitude": 26.14945846277645
+    }
+  },
+  {
+    "userId": "PMB_2024",
+    "category": "traffic",
+    "noiseLevel": 5,
+    "reportTimestamp": "2024-06-01T12:00:00",
+    "location": {
+      "latitude": 44.44999939418114,
+      "longitude": 26.13001328233611
+    }
+  },
+  {
+    "userId": "PMB_2024",
+    "category": "traffic",
+    "noiseLevel": 5,
+    "reportTimestamp": "2024-06-01T12:00:00",
+    "location": {
+      "latitude": 44.4366658484197,
+      "longitude": 26.14644989415642
+    }
+  },
+  {
+    "userId": "PMB_2024",
+    "category": "traffic",
+    "noiseLevel": 5,
+    "reportTimestamp": "2024-06-01T12:00:00",
+    "location": {
+      "latitude": 44.392401864044245,
+      "longitude": 26.141982735042763
+    }
+  },
+  {
+    "userId": "PMB_2024",
+    "category": "traffic",
+    "noiseLevel": 5,
+    "reportTimestamp": "2024-06-01T12:00:00",
+    "location": {
+      "latitude": 44.39239945203362,
+      "longitude": 26.112289997881103
+    }
+  },
+  {
+    "userId": "PMB_2024",
+    "category": "traffic",
+    "noiseLevel": 5,
+    "reportTimestamp": "2024-06-01T12:00:00",
+    "location": {
+      "latitude": 44.38260836121682,
+      "longitude": 26.14468742350231
+    }
+  },
+  {
+    "userId": "PMB_2024",
+    "category": "traffic",
+    "noiseLevel": 5,
+    "reportTimestamp": "2024-06-01T12:00:00",
+    "location": {
+      "latitude": 44.46341761457749,
+      "longitude": 26.06134925020519
+    }
+  },
+  {
+    "userId": "PMB_2024",
+    "category": "traffic",
+    "noiseLevel": 5,
+    "reportTimestamp": "2024-06-01T12:00:00",
+    "location": {
+      "latitude": 44.43691150117432,
+      "longitude": 26.07209828624192
+    }
+  },
+  {
+    "userId": "PMB_2024",
+    "category": "traffic",
+    "noiseLevel": 5,
+    "reportTimestamp": "2024-06-01T12:00:00",
+    "location": {
+      "latitude": 44.4476072577796,
+      "longitude": 26.05702272889105
+    }
+  },
+  {
+    "userId": "PMB_2024",
+    "category": "traffic",
+    "noiseLevel": 3,
+    "reportTimestamp": "2024-06-01T13:00:00",
+    "location": {
+      "latitude": 44.414254011884736,
+      "longitude": 26.07098544555255
+    }
+  },
+  {
+    "userId": "PMB_2024",
+    "category": "traffic",
+    "noiseLevel": 4,
+    "reportTimestamp": "2024-06-01T14:00:00",
+    "location": {
+      "latitude": 44.414254011884736,
+      "longitude": 26.07098544555255
+    }
+  },
+  {
+    "userId": "PMB_2024",
+    "category": "traffic",
+    "noiseLevel": 5,
+    "reportTimestamp": "2024-06-01T16:00:00",
+    "location": {
+      "latitude": 44.414254011884736,
+      "longitude": 26.07098544555255
+    }
+  },
+  {
+    "userId": "PMB_2024",
+    "category": "traffic",
+    "noiseLevel": 3,
+    "reportTimestamp": "2024-06-01T20:00:00",
+    "location": {
+      "latitude": 44.414254011884736,
+      "longitude": 26.07098544555255
+    }
+  },
+  {
+    "userId": "PMB_2024",
+    "category": "traffic",
+    "noiseLevel": 4,
+    "reportTimestamp": "2024-06-01T13:00:00",
+    "location": {
+      "latitude": 44.471871430641,
+      "longitude": 26.14945846277645
+    }
+  },
+  {
+    "userId": "PMB_2024",
+    "category": "traffic",
+    "noiseLevel": 5,
+    "reportTimestamp": "2024-06-01T14:00:00",
+    "location": {
+      "latitude": 44.471871430641,
+      "longitude": 26.14945846277645
+    }
+  },
+  {
+    "userId": "PMB_2024",
+    "category": "traffic",
+    "noiseLevel": 3,
+    "reportTimestamp": "2024-06-01T16:00:00",
+    "location": {
+      "latitude": 44.471871430641,
+      "longitude": 26.14945846277645
+    }
+  },
+  {
+    "userId": "PMB_2024",
+    "category": "traffic",
+    "noiseLevel": 4,
+    "reportTimestamp": "2024-06-01T20:00:00",
+    "location": {
+      "latitude": 44.471871430641,
+      "longitude": 26.14945846277645
+    }
+  },
+  {
+    "userId": "PMB_2024",
+    "category": "traffic",
+    "noiseLevel": 5,
+    "reportTimestamp": "2024-06-01T13:00:00",
+    "location": {
+      "latitude": 44.44999939418114,
+      "longitude": 26.13001328233611
+    }
+  },
+  {
+    "userId": "PMB_2024",
+    "category": "traffic",
+    "noiseLevel": 5,
+    "reportTimestamp": "2024-06-01T14:00:00",
+    "location": {
+      "latitude": 44.44999939418114,
+      "longitude": 26.13001328233611
+    }
+  },
+  {
+    "userId": "PMB_2024",
+    "category": "traffic",
+    "noiseLevel": 5,
+    "reportTimestamp": "2024-06-01T16:00:00",
+    "location": {
+      "latitude": 44.44999939418114,
+      "longitude": 26.13001328233611
+    }
+  },
+  {
+    "userId": "PMB_2024",
+    "category": "traffic",
+    "noiseLevel": 3,
+    "reportTimestamp": "2024-06-01T20:00:00",
+    "location": {
+      "latitude": 44.44999939418114,
+      "longitude": 26.13001328233611
+    }
+  },
+  {
+    "userId": "PMB_2024",
+    "category": "traffic",
+    "noiseLevel": 5,
+    "reportTimestamp": "2024-06-01T13:00:00",
+    "location": {
+      "latitude": 44.4366658484197,
+      "longitude": 26.14644989415642
+    }
+  },
+  {
+    "userId": "PMB_2024",
+    "category": "traffic",
+    "noiseLevel": 3,
+    "reportTimestamp": "2024-06-01T14:00:00",
+    "location": {
+      "latitude": 44.4366658484197,
+      "longitude": 26.14644989415642
+    }
+  },
+  {
+    "userId": "PMB_2024",
+    "category": "traffic",
+    "noiseLevel": 3,
+    "reportTimestamp": "2024-06-01T16:00:00",
+    "location": {
+      "latitude": 44.4366658484197,
+      "longitude": 26.14644989415642
+    }
+  },
+  {
+    "userId": "PMB_2024",
+    "category": "traffic",
+    "noiseLevel": 3,
+    "reportTimestamp": "2024-06-01T20:00:00",
+    "location": {
+      "latitude": 44.4366658484197,
+      "longitude": 26.14644989415642
+    }
+  },
+  {
+    "userId": "PMB_2024",
+    "category": "traffic",
+    "noiseLevel": 3,
+    "reportTimestamp": "2024-06-01T13:00:00",
+    "location": {
+      "latitude": 44.392401864044245,
+      "longitude": 26.141982735042763
+    }
+  },
+  {
+    "userId": "PMB_2024",
+    "category": "traffic",
+    "noiseLevel": 5,
+    "reportTimestamp": "2024-06-01T14:00:00",
+    "location": {
+      "latitude": 44.392401864044245,
+      "longitude": 26.141982735042763
+    }
+  },
+  {
+    "userId": "PMB_2024",
+    "category": "traffic",
+    "noiseLevel": 5,
+    "reportTimestamp": "2024-06-01T16:00:00",
+    "location": {
+      "latitude": 44.392401864044245,
+      "longitude": 26.141982735042763
+    }
+  },
+  {
+    "userId": "PMB_2024",
+    "category": "traffic",
+    "noiseLevel": 3,
+    "reportTimestamp": "2024-06-01T20:00:00",
+    "location": {
+      "latitude": 44.392401864044245,
+      "longitude": 26.141982735042763
+    }
+  }
+]
