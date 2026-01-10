@@ -22,3 +22,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Secrets / credentials
+serviceAccount*.json
+firebase-service-account*.json
+*-service-account*.json
+secrets/
+credentials/
