@@ -1,0 +1,23 @@
+services:
+  exports:
+    image: nginx:alpine
+    container_name: urban-noise-exports
+    ports:
+      - "8082:80"
+    volumes:
+      - ./exports:/usr/share/nginx/html:ro
+
+  grafana:
+    image: grafana/grafana:11.3.0
+    container_name: urban-noise-grafana
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_INSTALL_PLUGINS=yesoreyeram-infinity-datasource
+    volumes:
+      - grafana-storage:/var/lib/grafana
+
+volumes:
+  grafana-storage:
