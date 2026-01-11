@@ -1,5 +1,7 @@
 import "dotenv/config";
 import fs from "node:fs/promises";
+import path from "node:path";
+import { createBucharestSectorResolver } from "./bucharestSector.mjs";
 
 const argv = process.argv.slice(2);
 const getArg = (name) => {
@@ -7,6 +9,8 @@ const getArg = (name) => {
   const hit = argv.find((a) => a.startsWith(prefix));
   return hit ? hit.slice(prefix.length) : undefined;
 };
+
+const credsPathArg = getArg("creds");
 
 const cleanEnv = (value) => {
   const trimmed = (value ?? "").toString().trim();
@@ -67,6 +71,15 @@ const startOfHourLocal = (date) => {
 };
 
 const resolveServiceAccountJson = async () => {
+  const credsPath = cleanEnv(credsPathArg);
+  if (credsPath) {
+    const full = path.isAbsolute(credsPath)
+      ? credsPath
+      : path.join(process.cwd(), credsPath.replaceAll("/", path.sep));
+    const raw = await fs.readFile(full, "utf8");
+    return JSON.parse(raw);
+  }
+
   const jsonInline = cleanEnv(process.env.FIREBASE_ADMIN_CREDENTIALS_JSON);
   if (jsonInline) return JSON.parse(jsonInline);
 
@@ -95,6 +108,12 @@ const main = async () => {
   const dryRun = argv.includes("--dry-run");
   const zoneMode = (getArg("zoneMode") ?? "grid").toLowerCase();
   const gridDeg = Number(getArg("gridDeg") ?? "0.01");
+  const sectorsGeojson = getArg("sectorsGeojson");
+
+  const resolveSector =
+    zoneMode === "sector"
+      ? await createBucharestSectorResolver({ geojsonPath: sectorsGeojson })
+      : undefined;
 
   const serviceAccount = await resolveServiceAccountJson();
   if (!serviceAccount) {
@@ -117,7 +136,7 @@ const main = async () => {
   const db = admin.firestore();
 
   // Aggregate: key = `${bucketStartMs}|${zoneId}`
-  /** @type {Map<string, { bucketStart: Date, zoneId: string, minNoise: number, maxNoise: number, sampleCount: number, categoryCounts: Map<string, number>, categoryNoiseSum: Map<string, number> }>} */
+  /** @type {Map<string, { bucketStart: Date, zoneId: string, minNoise: number, maxNoise: number, noiseSum: number, sampleCount: number, categoryCounts: Map<string, number>, categoryNoiseSum: Map<string, number> }>} */
   const buckets = new Map();
 
   let lastDoc = undefined;
@@ -145,11 +164,15 @@ const main = async () => {
 
       const bucketStart = startOfHourLocal(ts);
       let zoneId = (v.zoneId ?? "").toString();
-      if ((!zoneId || !zoneId.trim()) && zoneMode === "grid") {
-        const ll = getLatLon(v.location);
+      const ll = getLatLon(v.location);
+
+      if (zoneMode === "sector") {
+        const sector = ll ? resolveSector?.(ll.lat, ll.lon) : "";
+        // For sector mode we want zoneId to be the sector number ("1".."6")
+        zoneId = sector || zoneId || "";
+      } else if ((!zoneId || !zoneId.trim()) && zoneMode === "grid") {
         if (ll) zoneId = computeGridZoneId(ll, gridDeg);
-      }
-      if ((!zoneId || !zoneId.trim()) && zoneMode === "none") {
+      } else if (zoneMode === "none") {
         zoneId = "";
       }
       const key = `${bucketStart.getTime()}|${zoneId}`;
@@ -164,6 +187,7 @@ const main = async () => {
           zoneId,
           minNoise: noiseLevel,
           maxNoise: noiseLevel,
+          noiseSum: 0,
           sampleCount: 0,
           categoryCounts: new Map(),
           categoryNoiseSum: new Map(),
@@ -174,6 +198,7 @@ const main = async () => {
       agg.sampleCount += 1;
       agg.minNoise = Math.min(agg.minNoise, noiseLevel);
       agg.maxNoise = Math.max(agg.maxNoise, noiseLevel);
+      agg.noiseSum += noiseLevel;
 
       const category = (v.category ?? "").toString() || "unknown";
       agg.categoryCounts.set(category, (agg.categoryCounts.get(category) ?? 0) + 1);
@@ -221,6 +246,7 @@ const main = async () => {
       zoneId: agg.zoneId,
       timestamp: admin.firestore.Timestamp.fromDate(agg.bucketStart),
       sampleCount: agg.sampleCount,
+      avgNoise: agg.sampleCount > 0 ? agg.noiseSum / agg.sampleCount : 0,
       minNoise: agg.minNoise,
       maxNoise: agg.maxNoise,
       dominantCategory,

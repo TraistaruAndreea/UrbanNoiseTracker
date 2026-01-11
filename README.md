@@ -42,8 +42,21 @@ Scriptul calculează statistici pe oră din colecția `noiseReports` și scrie �
 Necesită service account (admin):
 - `GOOGLE_APPLICATION_CREDENTIALS=...` (sau `FIREBASE_ADMIN_CREDENTIALS_PATH` / `FIREBASE_ADMIN_CREDENTIALS_JSON`)
 
+Alternativ poți pasa direct fișierul JSON:
+- `node scripts/computeHourlyStats.mjs --creds=secrets/service-account.json`
+
 Rulează:
 - `npm run compute:statisticiOrare`
+
+Import în Firestore din CSV (dacă ai calculat local)
+-----------------------------------------------
+
+Dacă ai deja un fișier CSV cu statistici orare (ex: `exports/statisticiOrare.csv`) și vrei să-l salvezi înapoi în Firestore:
+
+- `npm run import:statisticiOrare:csv -- --in=exports/statisticiOrare.csv --collection=statisticiOrare --creds=secrets/service-account.json`
+
+Dry-run (fără scriere):
+- `npm run import:statisticiOrare:csv -- --in=exports/statisticiOrare.csv --collection=statisticiOrare --creds=secrets/service-account.json --dry-run`
 
 Opțional:
 - interval: `node scripts/computeHourlyStats.mjs --start=2024-06-01T00:00:00 --end=2024-06-02T00:00:00`
@@ -57,6 +70,22 @@ Dacă rapoartele nu au `zoneId`, scriptul poate calcula automat un `zoneId` din 
 - schimbă dimensiunea grilei (grade): `node scripts/computeHourlyStats.mjs --gridDeg=0.01` (≈1.1km)
 - dezactivează zonarea: `node scripts/computeHourlyStats.mjs --zoneMode=none`
 
+ZoneId automat (sector București)
+--------------------------------
+
+Dacă rapoartele au coordonate (lat/lon) în București, poți seta `zoneId` ca numărul sectorului ("1".."6"):
+
+- `node scripts/computeHourlyStats.mjs --zoneMode=sector`
+
+Comenzi npm gata făcute (scrie într-o colecție separată + export separat):
+- `npm run compute:statisticiOrare:sector`
+- `npm run export:statisticiOrare:sector`
+
+Opțional (mai precis): poți trece un GeoJSON cu poligoanele sectoarelor (FeatureCollection, cu `properties.sector` sau `properties.id` = 1..6):
+
+- `node scripts/computeHourlyStats.mjs --zoneMode=sector --sectorsGeojson=path/to/bucharest_sectors.geojson`
+
+npm run compute:statisticiOrare:sector -- --creds=secrets/service-account.json
 
 Grafana local (fără Billing) — CSV
 =================================

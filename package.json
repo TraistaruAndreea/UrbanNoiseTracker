@@ -10,9 +10,12 @@
     "import:noiseReports": "node import-json.js",
     "import:noiseReports:admin": "node import-json.js --mode=admin",
     "import:noiseReports:user": "node import-json.js --mode=user",
+    "import:statisticiOrare:csv": "node scripts/importStatisticiOrareFromCsv.mjs",
     "serve:exports": "node scripts/serveExports.mjs --port=8080",
     "compute:statisticiOrare": "node scripts/computeHourlyStats.mjs",
+    "compute:statisticiOrare:sector": "node scripts/computeHourlyStats.mjs --zoneMode=sector --outCollection=statisticiOrare_sector",
     "export:statisticiOrare": "node scripts/exportStatisticiOrareToCsv.mjs --out=exports/statisticiOrare.csv",
+    "export:statisticiOrare:sector": "node scripts/exportStatisticiOrareToCsv.mjs --collection=statisticiOrare_sector --out=exports/statisticiOrare_sector.csv",
     "preview": "vite preview"
   },
   "dependencies": {
