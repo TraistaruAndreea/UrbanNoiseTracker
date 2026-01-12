@@ -25,12 +25,32 @@ type QuietSavedPayload = {
   timestamp: number;
 };
 
+type ArcGisSyncApi = {
+  addNoiseReportFeature: (p: {
+    lat: number;
+    lon: number;
+    category: string;
+    decibels: number;
+    timestamp: number;
+    userId: string;
+  }) => Promise<void>;
+  addQuietZoneFeature: (p: {
+    lat: number;
+    lon: number;
+    score: number;
+    description: string;
+    addedBy: string;
+    timestamp: number;
+  }) => Promise<void>;
+};
+
 export default function MapPage() {
   const { user } = useAuth();
   const [picked, setPicked] = useState<{ lat: number; lon: number } | null>(null);
   const [savedPoints, setSavedPoints] = useState<
     Array<{ lat: number; lon: number; kind: "report" | "quiet" }>
   >([]);
+  const [arcGisApi, setArcGisApi] = useState<ArcGisSyncApi | null>(null);
 
   const handlePickLocation = useCallback((coords: { lat: number; lon: number }) => {
     setPicked(coords);
@@ -45,7 +65,12 @@ export default function MapPage() {
     }}>
       {/* Map fills whole area */}
       <div style={{ height: "100%", width: "100%" }}>
-        <ArcGisMap onPickLocation={handlePickLocation} pickedLocation={picked} savedPoints={savedPoints} />
+        <ArcGisMap
+          onPickLocation={handlePickLocation}
+          pickedLocation={picked}
+          savedPoints={savedPoints}
+          onArcGisReady={(api) => setArcGisApi(api)}
+        />
       </div>
 
       {/* Top-left auth controls */}
@@ -80,22 +105,52 @@ export default function MapPage() {
           <ReportForm
             pickedLat={picked?.lat}
             pickedLon={picked?.lon}
-            onSaved={(payload: ReportSavedPayload) => {
+            onSaved={async (payload: ReportSavedPayload) => {
+              // Local fallback marker (in case ArcGIS edit fails)
               setSavedPoints((prev) => [
                 ...prev,
                 { lat: payload.lat, lon: payload.lon, kind: "report" },
               ]);
+
+              if (!arcGisApi) return;
+              try {
+                await arcGisApi.addNoiseReportFeature({
+                  lat: payload.lat,
+                  lon: payload.lon,
+                  category: payload.category,
+                  decibels: payload.decibels,
+                  timestamp: payload.timestamp,
+                  userId: payload.userId,
+                });
+              } catch (e) {
+                console.error("❌ ArcGIS sync failed (User_Reports)", e);
+              }
             }}
           />
           <hr />
           <QuietZoneForm
             pickedLat={picked?.lat}
             pickedLon={picked?.lon}
-            onSaved={(payload: QuietSavedPayload) => {
+            onSaved={async (payload: QuietSavedPayload) => {
+              // Local fallback marker (in case ArcGIS edit fails)
               setSavedPoints((prev) => [
                 ...prev,
                 { lat: payload.lat, lon: payload.lon, kind: "quiet" },
               ]);
+
+              if (!arcGisApi) return;
+              try {
+                await arcGisApi.addQuietZoneFeature({
+                  lat: payload.lat,
+                  lon: payload.lon,
+                  score: payload.score,
+                  description: payload.description,
+                  addedBy: payload.addedBy,
+                  timestamp: payload.timestamp,
+                });
+              } catch (e) {
+                console.error("❌ ArcGIS sync failed (QuietRecommendations)", e);
+              }
             }}
           />
         </div>
