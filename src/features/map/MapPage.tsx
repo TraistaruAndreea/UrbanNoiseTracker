@@ -5,9 +5,36 @@ import QuietZoneForm from "./QuietZonesForm";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../lib/AuthContext";
 import { logout } from "../../lib/auth";
+import { useCallback, useState } from "react";
+
+type ReportSavedPayload = {
+  lat: number;
+  lon: number;
+  category: string;
+  decibels: number;
+  timestamp: number;
+  userId: string;
+};
+
+type QuietSavedPayload = {
+  lat: number;
+  lon: number;
+  score: number;
+  description: string;
+  addedBy: string;
+  timestamp: number;
+};
 
 export default function MapPage() {
   const { user } = useAuth();
+  const [picked, setPicked] = useState<{ lat: number; lon: number } | null>(null);
+  const [savedPoints, setSavedPoints] = useState<
+    Array<{ lat: number; lon: number; kind: "report" | "quiet" }>
+  >([]);
+
+  const handlePickLocation = useCallback((coords: { lat: number; lon: number }) => {
+    setPicked(coords);
+  }, []);
 
   return (
     <div style={{
@@ -18,7 +45,7 @@ export default function MapPage() {
     }}>
       {/* Map fills whole area */}
       <div style={{ height: "100%", width: "100%" }}>
-        <ArcGisMap />
+        <ArcGisMap onPickLocation={handlePickLocation} pickedLocation={picked} savedPoints={savedPoints} />
       </div>
 
       {/* Top-left auth controls */}
@@ -50,9 +77,27 @@ export default function MapPage() {
         zIndex: 40
       }}>
         <div style={{ maxWidth: '100%' }}>
-          <ReportForm />
+          <ReportForm
+            pickedLat={picked?.lat}
+            pickedLon={picked?.lon}
+            onSaved={(payload: ReportSavedPayload) => {
+              setSavedPoints((prev) => [
+                ...prev,
+                { lat: payload.lat, lon: payload.lon, kind: "report" },
+              ]);
+            }}
+          />
           <hr />
-          <QuietZoneForm />
+          <QuietZoneForm
+            pickedLat={picked?.lat}
+            pickedLon={picked?.lon}
+            onSaved={(payload: QuietSavedPayload) => {
+              setSavedPoints((prev) => [
+                ...prev,
+                { lat: payload.lat, lon: payload.lon, kind: "quiet" },
+              ]);
+            }}
+          />
         </div>
       </div>
     </div>

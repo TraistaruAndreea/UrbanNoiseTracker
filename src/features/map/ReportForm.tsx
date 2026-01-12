@@ -1,27 +1,63 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { GeoPoint } from "firebase/firestore";
 import { auth } from "../../lib/firebase";
 import { addNoiseReport } from "../../lib/firestore";
 import type { NoiseCategory } from "../../models/models";
 
-export default function ReportForm() {
+type ReportFormProps = {
+  pickedLat?: number;
+  pickedLon?: number;
+  onSaved?: (payload: {
+    lat: number;
+    lon: number;
+    category: NoiseCategory;
+    decibels: number;
+    timestamp: number;
+    userId: string;
+  }) => void | Promise<void>;
+};
+
+export default function ReportForm({ pickedLat, pickedLon, onSaved }: ReportFormProps) {
   const [lat, setLat] = useState(44.43);
   const [lon, setLon] = useState(26.1);
   const [category, setCategory] = useState<NoiseCategory>("trafic");
   const [decibels, setDecibels] = useState(70);
   const [status, setStatus] = useState("");
 
+  useEffect(() => {
+    if (typeof pickedLat === "number" && Number.isFinite(pickedLat)) {
+      setLat(pickedLat);
+    }
+  }, [pickedLat]);
+
+  useEffect(() => {
+    if (typeof pickedLon === "number" && Number.isFinite(pickedLon)) {
+      setLon(pickedLon);
+    }
+  }, [pickedLon]);
+
   const submit = async () => {
     setStatus("");
     const u = auth.currentUser;
     if (!u) return setStatus("Trebuie să fii logat.");
 
+    const timestamp = Date.now();
+
     await addNoiseReport({
       userId: u.uid,
       noiseLevel: new GeoPoint(lat, lon),
       category,
-      timestamp: Date.now(),
+      timestamp,
       decibels,
+    });
+
+    await onSaved?.({
+      lat,
+      lon,
+      category,
+      decibels,
+      timestamp,
+      userId: u.uid,
     });
 
     setStatus("Raport trimis.");
