@@ -13,6 +13,7 @@ import IdentityManager from "@arcgis/core/identity/IdentityManager";
 import esriConfig from "@arcgis/core/config";
 
 type ArcGisMapProps = {
+  webmapItemId: string;
   onPickLocation?: (coords: { lat: number; lon: number }) => void;
   pickedLocation?: { lat: number; lon: number } | null;
   savedPoints?: Array<{ lat: number; lon: number; kind: "report" | "quiet" }>;
@@ -34,13 +35,20 @@ type ArcGisMapProps = {
       timestamp: number;
     }) => Promise<void>;
   }) => void;
+  /** When true, clicking the map picks coordinates (for forms). When false, map is view-only. */
+  enablePicking?: boolean;
+  /** When false, we don't expose applyEdits helpers (useful for view-only tab). */
+  enableEdits?: boolean;
 };
 
 export default function ArcGisMap({
+  webmapItemId,
   onPickLocation,
   pickedLocation,
   savedPoints,
   onArcGisReady,
+  enablePicking = true,
+  enableEdits = true,
 }: ArcGisMapProps) {
   const divRef = useRef<HTMLDivElement | null>(null);
 
@@ -129,7 +137,7 @@ export default function ArcGisMap({
         // 🔹 WEBMAP
         const webmap = new WebMap({
           portalItem: {
-            id: "214b24b9b3614049bc64254e3fc42b76",
+            id: webmapItemId,
           },
         });
 
@@ -231,55 +239,58 @@ export default function ArcGisMap({
           primaryReportLayerRef.current = primaryReportLayer;
         }
 
-        // Expose applyEdits helpers to parent so saved points are real ArcGIS features.
-        onArcGisReadyRef.current?.({
-          addNoiseReportFeature: async (p) => {
-            const layer = userReportsLayerRef.current ?? primaryReportLayerRef.current;
-            if (!layer) throw new Error("Nu am găsit layer-ul User_Reports în WebMap");
+        if (enableEdits) {
+          // Expose applyEdits helpers to parent so saved points are real ArcGIS features.
+          onArcGisReadyRef.current?.({
+            addNoiseReportFeature: async (p) => {
+              const layer = userReportsLayerRef.current ?? primaryReportLayerRef.current;
+              if (!layer) throw new Error("Nu am găsit layer-ul User_Reports în WebMap");
 
-            await layer.load();
+              await layer.load();
 
-            const res = await layer.applyEdits({
-              addFeatures: [
-                {
-                  geometry: new Point({ latitude: p.lat, longitude: p.lon }),
-                  attributes: {
-                    userId: p.userId,
-                    category: p.category,
-                    noiseLevel: Math.round(p.decibels),
-                    reportTimestamp: new Date(p.timestamp),
-                  },
-                } as any,
-              ],
-            });
+              const res = await layer.applyEdits({
+                addFeatures: [
+                  {
+                    geometry: new Point({ latitude: p.lat, longitude: p.lon }),
+                    attributes: {
+                      userId: p.userId,
+                      category: p.category,
+                      noiseLevel: Math.round(p.decibels),
+                      reportTimestamp: new Date(p.timestamp),
+                    },
+                  } as any,
+                ],
+              });
 
-            const r0 = res.addFeatureResults?.[0];
-            if (r0?.error) throw r0.error;
-          },
-          addQuietZoneFeature: async (p) => {
-            const layer = quietRecommendationsLayerRef.current;
-            if (!layer) throw new Error("Nu am găsit layer-ul QuietRecommendations în WebMap");
+              const r0 = res.addFeatureResults?.[0];
+              if (r0?.error) throw r0.error;
+            },
+            addQuietZoneFeature: async (p) => {
+              const layer = quietRecommendationsLayerRef.current;
+              if (!layer)
+                throw new Error("Nu am găsit layer-ul QuietRecommendations în WebMap");
 
-            await layer.load();
+              await layer.load();
 
-            const res = await layer.applyEdits({
-              addFeatures: [
-                {
-                  geometry: new Point({ latitude: p.lat, longitude: p.lon }),
-                  attributes: {
-                    score: p.score,
-                    description: p.description,
-                    addedBy: p.addedBy,
-                    timestamp: new Date(p.timestamp),
-                  },
-                } as any,
-              ],
-            });
+              const res = await layer.applyEdits({
+                addFeatures: [
+                  {
+                    geometry: new Point({ latitude: p.lat, longitude: p.lon }),
+                    attributes: {
+                      score: p.score,
+                      description: p.description,
+                      addedBy: p.addedBy,
+                      timestamp: new Date(p.timestamp),
+                    },
+                  } as any,
+                ],
+              });
 
-            const r0 = res.addFeatureResults?.[0];
-            if (r0?.error) throw r0.error;
-          },
-        });
+              const r0 = res.addFeatureResults?.[0];
+              if (r0?.error) throw r0.error;
+            },
+          });
+        }
 
         // Single click handler:
         // 1) if click hits a report feature -> open popup
@@ -343,6 +354,8 @@ export default function ArcGisMap({
             }
           }
 
+          if (!enablePicking) return;
+
           const pt = view.toMap({ x: event.x, y: event.y });
           if (!pt) return;
           if (typeof pt.latitude !== "number" || typeof pt.longitude !== "number") return;
@@ -376,7 +389,7 @@ export default function ArcGisMap({
       reportLayersRef.current = [];
       primaryReportLayerRef.current = null;
     };
-  }, []);
+  }, [webmapItemId, enablePicking, enableEdits]);
 
   return <div ref={divRef} style={{ width: "100%", height: "100%" }} />;
 }
