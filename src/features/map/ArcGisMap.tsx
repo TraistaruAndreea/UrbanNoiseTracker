@@ -13,15 +13,42 @@ import IdentityManager from "@arcgis/core/identity/IdentityManager";
 import esriConfig from "@arcgis/core/config";
 
 type ArcGisMapProps = {
+  webmapItemId: string;
   onPickLocation?: (coords: { lat: number; lon: number }) => void;
   pickedLocation?: { lat: number; lon: number } | null;
   savedPoints?: Array<{ lat: number; lon: number; kind: "report" | "quiet" }>;
+  onArcGisReady?: (api: {
+    addNoiseReportFeature: (p: {
+      lat: number;
+      lon: number;
+      category: string;
+      decibels: number;
+      timestamp: number;
+      userId: string;
+    }) => Promise<void>;
+    addQuietZoneFeature: (p: {
+      lat: number;
+      lon: number;
+      score: number;
+      description: string;
+      addedBy: string;
+      timestamp: number;
+    }) => Promise<void>;
+  }) => void;
+  /** When true, clicking the map picks coordinates (for forms). When false, map is view-only. */
+  enablePicking?: boolean;
+  /** When false, we don't expose applyEdits helpers (useful for view-only tab). */
+  enableEdits?: boolean;
 };
 
 export default function ArcGisMap({
+  webmapItemId,
   onPickLocation,
   pickedLocation,
   savedPoints,
+  onArcGisReady,
+  enablePicking = true,
+  enableEdits = true,
 }: ArcGisMapProps) {
   const divRef = useRef<HTMLDivElement | null>(null);
 
@@ -29,11 +56,14 @@ export default function ArcGisMap({
   const onPickLocationRef = useRef<ArcGisMapProps["onPickLocation"]>(onPickLocation);
   const pickedLocationRef = useRef<ArcGisMapProps["pickedLocation"]>(pickedLocation);
   const savedPointsRef = useRef<ArcGisMapProps["savedPoints"]>(savedPoints);
+  const onArcGisReadyRef = useRef<ArcGisMapProps["onArcGisReady"]>(onArcGisReady);
 
   const viewRef = useRef<MapView | null>(null);
   const graphicsLayerRef = useRef<GraphicsLayer | null>(null);
   const reportLayersRef = useRef<FeatureLayer[]>([]);
   const primaryReportLayerRef = useRef<FeatureLayer | null>(null);
+  const userReportsLayerRef = useRef<FeatureLayer | null>(null);
+  const quietRecommendationsLayerRef = useRef<FeatureLayer | null>(null);
 
   useEffect(() => {
     onPickLocationRef.current = onPickLocation;
@@ -47,29 +77,19 @@ export default function ArcGisMap({
     savedPointsRef.current = savedPoints;
   }, [savedPoints]);
 
+  useEffect(() => {
+    onArcGisReadyRef.current = onArcGisReady;
+  }, [onArcGisReady]);
+
   const renderMarkers = () => {
     const layer = graphicsLayerRef.current;
     if (!layer) return;
 
     layer.removeAll();
 
-    const saved = savedPointsRef.current ?? [];
-    for (const p of saved) {
-      const symbol = new SimpleMarkerSymbol({
-        style: "circle",
-        color: p.kind === "report" ? [220, 38, 38, 0.9] : [16, 185, 129, 0.9],
-        size: 8,
-        outline: { color: [255, 255, 255, 0.9], width: 1 },
-      });
-
-      layer.add(
-        new Graphic({
-          geometry: new Point({ latitude: p.lat, longitude: p.lon }),
-          symbol,
-        })
-      );
-    }
-
+    // Note: saved points should be rendered by the ArcGIS FeatureLayers themselves
+    // (so they look identical to the existing ArcGIS points). We keep only a
+    // "picked" preview marker here.
     const picked = pickedLocationRef.current;
     if (picked) {
       const symbol = new SimpleMarkerSymbol({
@@ -88,10 +108,10 @@ export default function ArcGisMap({
     }
   };
 
-  // Re-render markers when parent updates selected/saved points.
+  // Re-render preview marker when parent updates selected point.
   useEffect(() => {
     renderMarkers();
-  }, [pickedLocation, savedPoints]);
+  }, [pickedLocation]);
 
   useEffect(() => {
     if (!divRef.current) return;
@@ -117,7 +137,7 @@ export default function ArcGisMap({
         // 🔹 WEBMAP
         const webmap = new WebMap({
           portalItem: {
-            id: "214b24b9b3614049bc64254e3fc42b76",
+            id: webmapItemId,
           },
         });
 
@@ -169,6 +189,21 @@ export default function ArcGisMap({
         } else {
           await Promise.all(featureLayers.map((layer) => layer.load()));
 
+          // Pick destination layers by title
+          const normalize = (s: string) => s.trim().toLowerCase().replace(/\s+/g, "_");
+          const findByTitle = (title: string) => {
+            const t = normalize(title);
+            return (
+              featureLayers.find((l) => normalize(l.title ?? "") === t) ??
+              featureLayers.find((l) => normalize(l.title ?? "").includes(t)) ??
+              null
+            );
+          };
+
+          userReportsLayerRef.current = findByTitle("User_Reports") ?? findByTitle("user_reports");
+          quietRecommendationsLayerRef.current =
+            findByTitle("QuietRecommendations") ?? findByTitle("quietrecommendations") ?? findByTitle("quiet_recommendations");
+
         const required = new Set([
           "userId",
           "noiseLevel",
@@ -196,11 +231,65 @@ export default function ArcGisMap({
         );
 
           const primaryReportLayer =
+            userReportsLayerRef.current ??
             reportLayers.find((l) => l.title === "User_Reports") ??
             reportLayers.find((l) => (l.title ?? "").toLowerCase().includes("user_reports")) ??
             reportLayers[0] ??
             null;
           primaryReportLayerRef.current = primaryReportLayer;
+        }
+
+        if (enableEdits) {
+          // Expose applyEdits helpers to parent so saved points are real ArcGIS features.
+          onArcGisReadyRef.current?.({
+            addNoiseReportFeature: async (p) => {
+              const layer = userReportsLayerRef.current ?? primaryReportLayerRef.current;
+              if (!layer) throw new Error("Nu am găsit layer-ul User_Reports în WebMap");
+
+              await layer.load();
+
+              const res = await layer.applyEdits({
+                addFeatures: [
+                  {
+                    geometry: new Point({ latitude: p.lat, longitude: p.lon }),
+                    attributes: {
+                      userId: p.userId,
+                      category: p.category,
+                      noiseLevel: Math.round(p.decibels),
+                      reportTimestamp: new Date(p.timestamp),
+                    },
+                  } as any,
+                ],
+              });
+
+              const r0 = res.addFeatureResults?.[0];
+              if (r0?.error) throw r0.error;
+            },
+            addQuietZoneFeature: async (p) => {
+              const layer = quietRecommendationsLayerRef.current;
+              if (!layer)
+                throw new Error("Nu am găsit layer-ul QuietRecommendations în WebMap");
+
+              await layer.load();
+
+              const res = await layer.applyEdits({
+                addFeatures: [
+                  {
+                    geometry: new Point({ latitude: p.lat, longitude: p.lon }),
+                    attributes: {
+                      score: p.score,
+                      description: p.description,
+                      addedBy: p.addedBy,
+                      timestamp: new Date(p.timestamp),
+                    },
+                  } as any,
+                ],
+              });
+
+              const r0 = res.addFeatureResults?.[0];
+              if (r0?.error) throw r0.error;
+            },
+          });
         }
 
         // Single click handler:
@@ -265,6 +354,8 @@ export default function ArcGisMap({
             }
           }
 
+          if (!enablePicking) return;
+
           const pt = view.toMap({ x: event.x, y: event.y });
           if (!pt) return;
           if (typeof pt.latitude !== "number" || typeof pt.longitude !== "number") return;
@@ -298,7 +389,7 @@ export default function ArcGisMap({
       reportLayersRef.current = [];
       primaryReportLayerRef.current = null;
     };
-  }, []);
+  }, [webmapItemId, enablePicking, enableEdits]);
 
   return <div ref={divRef} style={{ width: "100%", height: "100%" }} />;
 }
