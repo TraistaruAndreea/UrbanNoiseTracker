@@ -72,7 +72,7 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 12,
+        "w": 24,
         "x": 0,
         "y": 0
       },
@@ -89,7 +89,7 @@
           "placement": "bottom",
           "showLegend": true
         },
-        "orientation": "auto",
+        "orientation": "vertical",
         "showValue": "auto",
         "stacking": "none",
         "tooltip": {
@@ -156,7 +156,7 @@
           }
         }
       ],
-      "title": "Panel Title",
+      "title": "Cele mai zgomotoase zone",
       "type": "barchart"
     }
   ],
