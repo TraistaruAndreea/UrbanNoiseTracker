@@ -24,6 +24,7 @@ export interface QuietZone {
   score: number;
   addedBy: string;
   description: string;
+  timestamp?: number;
 }
 
 export interface HourlyAnalytics {

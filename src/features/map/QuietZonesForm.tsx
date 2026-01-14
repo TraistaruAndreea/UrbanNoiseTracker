@@ -47,6 +47,7 @@ export default function QuietZoneForm({ pickedLat, pickedLon, onSaved }: QuietZo
       score,
       addedBy: u.uid,
       description,
+      timestamp,
     });
 
     await onSaved?.({
