@@ -4,7 +4,13 @@ import { logout } from "../lib/auth";
 import { useEffect, useMemo, useState } from "react";
 import { getDisplayNameForUser } from "../lib/userProfile";
 
-export default function Navbar() {
+type NavbarProps = {
+	leftSlot?: React.ReactNode;
+	rightSlot?: React.ReactNode;
+	hideHomeLink?: boolean;
+};
+
+export default function Navbar({ leftSlot, rightSlot, hideHomeLink }: NavbarProps) {
 	const { user } = useAuth();
 	const loc = useLocation();
 	const [displayName, setDisplayName] = useState<string>("");
@@ -58,29 +64,33 @@ export default function Navbar() {
 				alignItems: "center",
 				justifyContent: "space-between",
 				gap: 12,
+				flexWrap: "nowrap",
 			}}
 		>
-			<div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-				<Link to="/" style={linkStyle("/")}>Harta</Link>
+			<div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+				{leftSlot}
+				{hideHomeLink ? null : (
+					<Link to="/" style={linkStyle("/")}>Harta</Link>
+				)}
 				<Link to="/analytics" style={linkStyle("/analytics")}>Statistici</Link>
-				<Link to="/account" style={linkStyle("/account")}>Cont</Link>
 			</div>
 
-			<div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+			<div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
+				{rightSlot}
 				{user?.email ? (
 					<>
-						<Link
-							to="/account"
+						<span
 							style={{
 								color: "#16213e",
 								fontSize: 13,
-								textDecoration: "none",
-								fontWeight: 700,
+								fontWeight: 800,
+								padding: "0 6px",
 							}}
-							title="Deschide contul"
+							title={user.email}
 						>
 							{username || user.email}
-						</Link>
+						</span>
+						<Link to="/account" style={linkStyle("/account")}>Cont</Link>
 						<button
 							onClick={() => logout()}
 							style={{
@@ -95,7 +105,10 @@ export default function Navbar() {
 						</button>
 					</>
 				) : (
-					<Link to="/login" style={linkStyle("/login")}>Login</Link>
+					<>
+						<Link to="/login" style={linkStyle("/login")}>Login</Link>
+						<Link to="/register" style={linkStyle("/register")}>Register</Link>
+					</>
 				)}
 			</div>
 		</div>

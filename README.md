@@ -109,6 +109,16 @@ Grafana:
 CSV (test în browser):
 - `http://localhost:8082/noiseReports.csv`
 
+Dashboard-uri (share în repo):
+- Grafana își salvează dashboard-urile în storage-ul ei intern (Docker volume). Pe alt PC nu există acel volume, deci nu apar dashboard-urile.
+- Ca să fie vizibile pentru toată lumea, exportă dashboard-ul ca JSON și pune fișierul în `grafana/dashboards/` (comite în git).
+- La pornire, Grafana încarcă automat JSON-urile din `grafana/dashboards/` (provisioning).
+
+Export din UI:
+- Dashboard → **Share** → **Export** → **Save to file**
+- Copiază JSON-ul în `grafana/dashboards/<nume>.json`
+- Repornește stack-ul: `docker compose -f docker-compose.grafana.yml restart grafana`
+
 3) Configurează Infinity datasource
 ----------------------------------
 
@@ -119,4 +129,7 @@ CSV (test în browser):
 
 Note:
 - Folosește `http://exports/...` (numele serviciului din docker compose). Asta evită problemele cu `host.docker.internal`.
+
+Opțional:
+- Există și un datasource provisioned cu numele **Exports (Infinity)** (din `grafana/provisioning/datasources/datasources.yaml`).
 
