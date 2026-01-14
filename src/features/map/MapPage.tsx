@@ -5,7 +5,8 @@ import QuietZoneForm from "./QuietZonesForm";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../lib/AuthContext";
 import { logout } from "../../lib/auth";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { getDisplayNameForUser } from "../../lib/userProfile";
 
 type ReportSavedPayload = {
   lat: number;
@@ -46,23 +47,59 @@ type ArcGisSyncApi = {
 
 export default function MapPage() {
   const { user } = useAuth();
+  const [displayName, setDisplayName] = useState<string>("");
   const [activeTab, setActiveTab] = useState<"main" | "quiet">("main");
   const [picked, setPicked] = useState<{ lat: number; lon: number } | null>(null);
   const [savedPoints, setSavedPoints] = useState<
     Array<{ lat: number; lon: number; kind: "report" | "quiet" }>
   >([]);
   const [arcGisApi, setArcGisApi] = useState<ArcGisSyncApi | null>(null);
+  const [routingEnabled, setRoutingEnabled] = useState(false);
+  const [clearRouteTick, setClearRouteTick] = useState(0);
+  const [routingStatus, setRoutingStatus] = useState<string>("");
 
   const handlePickLocation = useCallback((coords: { lat: number; lon: number }) => {
     setPicked(coords);
   }, []);
+
+  const username = useMemo(() => {
+    if (displayName) return displayName;
+    const email = user?.email ?? "";
+    return email ? email.split("@")[0] : "";
+  }, [displayName, user?.email]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!user) {
+        setDisplayName("");
+        return;
+      }
+      try {
+        const name = await getDisplayNameForUser({ uid: user.uid, email: user.email });
+        if (cancelled) return;
+        setDisplayName(name);
+      } catch {
+        // ignore; fallback is email prefix
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.uid]);
 
   const switchTab = useCallback((tab: "main" | "quiet") => {
     setActiveTab(tab);
     // Avoid mixing "picked" coordinates and ArcGIS APIs between maps.
     setPicked(null);
     setArcGisApi(null);
+    // Reset routing when switching maps.
+    setRoutingEnabled(false);
+    setRoutingStatus("");
+    setClearRouteTick((t) => t + 1);
   }, []);
+
+  const canUseRouting = Boolean(user);
 
   return (
     <div style={{
@@ -82,6 +119,9 @@ export default function MapPage() {
             onArcGisReady={(api) => setArcGisApi(api)}
             enablePicking
             enableEdits
+            routingEnabled={routingEnabled && canUseRouting}
+            clearRouteTick={clearRouteTick}
+            onRoutingStatus={setRoutingStatus}
           />
         ) : (
           <ArcGisMap
@@ -92,6 +132,9 @@ export default function MapPage() {
             onArcGisReady={(api) => setArcGisApi(api)}
             enablePicking
             enableEdits
+            routingEnabled={routingEnabled && canUseRouting}
+            clearRouteTick={clearRouteTick}
+            onRoutingStatus={setRoutingStatus}
           />
         )}
       </div>
@@ -135,10 +178,89 @@ export default function MapPage() {
           </div>
         ) : (
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <div style={{ background: '#fff', color: '#16213e', padding: '6px 10px', borderRadius: 8 }}>{user.email}</div>
+            <Link
+              to="/account"
+              style={{
+                background: '#fff',
+                color: '#16213e',
+                padding: '6px 10px',
+                borderRadius: 8,
+                textDecoration: 'none',
+                fontWeight: 700,
+              }}
+              title="Deschide pagina utilizatorului"
+            >
+              {username || user.email}
+            </Link>
             <button onClick={() => logout()} style={{ padding: '6px 10px', borderRadius: 8, border: 'none', cursor: 'pointer' }}>Logout</button>
           </div>
         )}
+
+        {/* Routing controls - only for authenticated users */}
+        <div style={{ marginTop: 10, display: "flex", gap: 8, alignItems: "center" }}>
+          <button
+            disabled={!canUseRouting}
+            onClick={() => {
+              if (!canUseRouting) return;
+              setRoutingEnabled((v) => {
+                const next = !v;
+                setRoutingStatus(
+                  next
+                    ? "Rutare: ON (click pe un punct pentru a calcula traseul)"
+                    : ""
+                );
+                return next;
+              });
+            }}
+            style={{
+              padding: "8px 12px",
+              borderRadius: 10,
+              border: "1px solid #ddd",
+              cursor: canUseRouting ? "pointer" : "not-allowed",
+              background: routingEnabled ? "#16a34a" : "#fff",
+              color: routingEnabled ? "#fff" : "#16213e",
+            }}
+            title={canUseRouting ? "Activează rutarea" : "Trebuie să fii logat pentru rutare"}
+          >
+            {routingEnabled ? "Rutare: ON" : "Rutare: OFF"}
+          </button>
+          <button
+            disabled={!canUseRouting}
+            onClick={() => {
+              if (!canUseRouting) return;
+              setClearRouteTick((t) => t + 1);
+            }}
+            style={{
+              padding: "8px 12px",
+              borderRadius: 10,
+              border: "1px solid #ddd",
+              cursor: canUseRouting ? "pointer" : "not-allowed",
+              background: "#fff",
+              color: "#16213e",
+            }}
+            title={canUseRouting ? "Anulează ruta" : "Trebuie să fii logat pentru rutare"}
+          >
+            Anulează ruta
+          </button>
+        </div>
+
+        {routingStatus ? (
+          <div
+            style={{
+              marginTop: 10,
+              maxWidth: 320,
+              background: "rgba(255,255,255,0.95)",
+              border: "1px solid #eee",
+              borderRadius: 10,
+              padding: "8px 10px",
+              color: "#16213e",
+              fontSize: 12,
+              lineHeight: 1.35,
+            }}
+          >
+            {routingStatus}
+          </div>
+        ) : null}
       </div>
 
       {/* Right-side panel for forms (optional) */}
