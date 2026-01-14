@@ -3,6 +3,7 @@ import MapPage from "../features/map/MapPage";
 import Login from "../features/auth/Login";
 import Register from "../features/auth/Register";
 import AnalyticsPage from "../features/analytics/AnalyticsPage";
+import AccountPage from "../features/account/AccountPage";
 import RequireAuth from "./RequireAuth";
 
 export const router = createBrowserRouter([
@@ -10,4 +11,5 @@ export const router = createBrowserRouter([
   { path: "/login", element: <Login /> },
   { path: "/register", element: <Register /> },
   { path: "/analytics", element: <RequireAuth><AnalyticsPage /></RequireAuth> },
+  { path: "/account", element: <RequireAuth><AccountPage /></RequireAuth> },
 ]);
