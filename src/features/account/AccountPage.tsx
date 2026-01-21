@@ -83,64 +83,22 @@ export default function AccountPage() {
 
           <div style={{ fontWeight: 600 }}>E-mail</div>
           <div>{email || "-"}</div>
-
-          <div style={{ fontWeight: 600 }}>Zone favorite</div>
-          <div>
-            {favoriteZoneIds.length === 0 ? (
-              <span style={{ color: "#666" }}>Nicio zonă favorită încă.</span>
-            ) : (
-              <div style={{ display: "grid", gap: 10 }}>
-                <div>
-                  <div style={{ fontWeight: 700, marginBottom: 6 }}>Zone gălăgioase favorite</div>
-                  {parsedFavorites.noisy.length === 0 ? (
-                    <div style={{ color: "#666" }}>Nicio zonă gălăgioasă favorită.</div>
-                  ) : (
-                    <ul style={{ margin: 0, paddingLeft: 18 }}>
-                      {parsedFavorites.noisy.map((id) => (
-                        <li key={id} style={{ fontFamily: "monospace" }}>
-                          {id}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-
-                <div>
-                  <div style={{ fontWeight: 700, marginBottom: 6 }}>Zone liniștite favorite</div>
-                  {parsedFavorites.quiet.length === 0 ? (
-                    <div style={{ color: "#666" }}>Nicio zonă liniștită favorită.</div>
-                  ) : (
-                    <ul style={{ margin: 0, paddingLeft: 18 }}>
-                      {parsedFavorites.quiet.map((id) => (
-                        <li key={id} style={{ fontFamily: "monospace" }}>
-                          {id}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-
-                {parsedFavorites.other.length > 0 ? (
-                  <div>
-                    <div style={{ fontWeight: 700, marginBottom: 6 }}>Altele (format vechi / necunoscut)</div>
-                    <ul style={{ margin: 0, paddingLeft: 18 }}>
-                      {parsedFavorites.other.map((id) => (
-                        <li key={id} style={{ fontFamily: "monospace" }}>
-                          {id}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : null}
-              </div>
-            )}
-          </div>
         </div>
       </div>
 
       <div style={{ marginTop: 16, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-        <div style={{ background: "#fff", border: "1px solid #eee", borderRadius: 12, padding: 14 }}>
+        <div
+          style={{
+            background: "#fff",
+            border: "1px solid #eee",
+            borderRadius: 12,
+            padding: 14,
+            gridColumn: "1 / -1",
+          }}
+        >
           <h3 style={{ marginTop: 0 }}>Zone raportate</h3>
+
+          <div style={{ fontWeight: 700, marginBottom: 6 }}>Raportările mele</div>
           {reportedZones.length === 0 ? (
             <div style={{ color: "#666" }}>N-ai raportat nimic încă.</div>
           ) : (
@@ -170,6 +128,73 @@ export default function AccountPage() {
                 </li>
               ))}
             </ul>
+          )}
+        </div>
+
+        <div style={{ background: "#fff", border: "1px solid #eee", borderRadius: 12, padding: 14 }}>
+          <h3 style={{ marginTop: 0 }}>Zone favorite</h3>
+          {favoriteZoneIds.length === 0 ? (
+            <div style={{ color: "#666" }}>Nicio zonă favorită încă.</div>
+          ) : (
+            <div style={{ display: "grid", gap: 12 }}>
+              <div>
+                <div style={{ fontWeight: 700, marginBottom: 6 }}>Zone gălăgioase favorite</div>
+                {parsedFavorites.noisy.length === 0 ? (
+                  <div style={{ color: "#666" }}>—</div>
+                ) : (
+                  <ul style={{ margin: 0, paddingLeft: 18 }}>
+                    {parsedFavorites.noisy.slice(0, 10).map((id) => (
+                      <li key={id} style={{ fontFamily: "monospace" }}>
+                        {id}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {parsedFavorites.noisy.length > 10 ? (
+                  <div style={{ color: "#666", fontSize: 12, marginTop: 6 }}>
+                    +{parsedFavorites.noisy.length - 10} altele…
+                  </div>
+                ) : null}
+              </div>
+
+              <div>
+                <div style={{ fontWeight: 700, marginBottom: 6 }}>Zone liniștite favorite</div>
+                {parsedFavorites.quiet.length === 0 ? (
+                  <div style={{ color: "#666" }}>—</div>
+                ) : (
+                  <ul style={{ margin: 0, paddingLeft: 18 }}>
+                    {parsedFavorites.quiet.slice(0, 10).map((id) => (
+                      <li key={id} style={{ fontFamily: "monospace" }}>
+                        {id}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {parsedFavorites.quiet.length > 10 ? (
+                  <div style={{ color: "#666", fontSize: 12, marginTop: 6 }}>
+                    +{parsedFavorites.quiet.length - 10} altele…
+                  </div>
+                ) : null}
+              </div>
+
+              {parsedFavorites.other.length > 0 ? (
+                <div>
+                  <div style={{ fontWeight: 700, marginBottom: 6 }}>Altele (format vechi / necunoscut)</div>
+                  <ul style={{ margin: 0, paddingLeft: 18 }}>
+                    {parsedFavorites.other.slice(0, 6).map((id) => (
+                      <li key={id} style={{ fontFamily: "monospace" }}>
+                        {id}
+                      </li>
+                    ))}
+                  </ul>
+                  {parsedFavorites.other.length > 6 ? (
+                    <div style={{ color: "#666", fontSize: 12, marginTop: 6 }}>
+                      +{parsedFavorites.other.length - 6} altele…
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
           )}
         </div>
       </div>

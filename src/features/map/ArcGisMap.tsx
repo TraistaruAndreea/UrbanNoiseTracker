@@ -678,49 +678,248 @@ export default function ArcGisMap({
         handles.push(clickHandle);
 
         // Popup action: toggle favorite
-        // Note: depending on ArcGIS JS API version, `view.popup.on(...)` may not exist.
-        // The supported pattern is to listen on the View itself for `trigger-action`.
+        // ArcGIS JS API emits `trigger-action` on the Popup, not on the MapView.
         const v = view;
-        if (!v) return;
-        const actionHandle = (v as any).on("trigger-action", async (evt: any) => {
-          if (evt.action?.id !== "toggle-favorite") return;
+        if (!v?.popup) return;
+
+        const logPrefix = `[favorites:${mapType}]`;
+
+        const setToggleTitle = (title: string) => {
+          try {
+            // `actions` is a Collection; it supports `.find`.
+            const actions: any = v.popup?.actions;
+            const toggle = actions?.find?.((a: any) => a?.id === "toggle-favorite");
+            if (toggle) toggle.title = title;
+          } catch {
+            // ignore
+          }
+        };
+
+        const getFavoriteInfoForFeature = (feature: Graphic | null) => {
+          if (!feature) return null;
+
+          const layerAny: any = feature.layer;
+          const layerTitle = String(layerAny?.title ?? layerAny?.id ?? "unknown");
+          const attrs: any = feature.attributes ?? {};
+          const oidField: string | undefined = layerAny?.objectIdField;
+
+          const oid =
+            (oidField ? attrs?.[oidField] : undefined) ??
+            attrs?.OBJECTID ??
+            attrs?.objectid ??
+            attrs?.ObjectId ??
+            attrs?.objectId;
+
+          if (oid == null) {
+            console.warn(`${logPrefix} cannot determine objectId`, {
+              layerTitle,
+              oidField,
+              attributeKeys: Object.keys(attrs ?? {}),
+              attrs,
+            });
+            return null;
+          }
+
+          return {
+            favoriteId: `arcgis:${mapType}:${layerTitle}:${String(oid)}`,
+            layerTitle,
+            oid,
+          };
+        };
+
+        const syncFavoriteTitleToSelected = async (feature: Graphic | null) => {
+          const info = getFavoriteInfoForFeature(feature);
+          if (!info) {
+            console.debug(`${logPrefix} selectedFeature changed but no favorite info`);
+            return;
+          }
+
+          console.debug(`${logPrefix} selectedFeature`, {
+            favoriteId: info.favoriteId,
+            layerTitle: info.layerTitle,
+            oid: info.oid,
+          });
 
           const u = auth.currentUser;
           if (!u) {
+            console.warn(`${logPrefix} firebase auth.currentUser is null (not logged in?)`);
+            setToggleTitle("Adaugă la favorite");
+            return;
+          }
+
+          try {
+            const userDoc = await getUserDoc(u.uid);
+            const existing = userDoc?.favoriteZones ?? [];
+            const isFav = existing.includes(info.favoriteId);
+            setToggleTitle(isFav ? "Scoate de la favorite" : "Adaugă la favorite");
+            console.debug(`${logPrefix} title synced`, {
+              uid: u.uid,
+              isFav,
+              favoritesCount: existing.length,
+            });
+          } catch (e: any) {
+            console.warn(`${logPrefix} title sync failed`, e);
+            // ignore title sync errors
+          }
+        };
+
+        // Some ArcGIS builds expose `watch` on the MapView but not on the Popup instance.
+        // Watch the nested property from the view to keep the action title in sync.
+        const viewWatch = (v as any).watch as ((path: string, cb: (value: any) => void) => __esri.Handle) | undefined;
+        if (typeof viewWatch === "function") {
+          const selectedHandle = viewWatch.call(v, "popup.selectedFeature", (feature: any) => {
+            void syncFavoriteTitleToSelected(feature as Graphic | null);
+            // Popup UI (including action buttons) may re-render; re-bind DOM fallback.
+            setTimeout(() => {
+              try {
+                const container = (v.popup as any)?.container as HTMLElement | null | undefined;
+                const el = container?.querySelector(
+                  '[data-action-id="toggle-favorite"], .esri-popup__action[data-action-id="toggle-favorite"]'
+                ) as HTMLElement | null;
+                if (el && !(el as any).__favoriteBound) {
+                  (el as any).__favoriteBound = true;
+                  el.addEventListener("click", () => {
+                    console.debug(`${logPrefix} DOM fallback click captured for toggle-favorite`);
+                    void onTriggerAction({ action: { id: "toggle-favorite", title: (el as any)?.title } });
+                  });
+                  console.debug(`${logPrefix} DOM fallback bound for toggle-favorite (after selection change)`);
+                }
+              } catch {
+                // ignore
+              }
+            }, 0);
+          });
+          handles.push(selectedHandle as any);
+          // Initial sync if popup already has a selected feature.
+          void syncFavoriteTitleToSelected(v.popup?.selectedFeature as any);
+        } else {
+          console.warn(`${logPrefix} cannot watch popup.selectedFeature (view.watch missing)`);
+        }
+
+        const onTriggerAction = async (evt: any) => {
+          if (evt.action?.id !== "toggle-favorite") return;
+
+          console.log(`${logPrefix} trigger-action`, {
+            actionId: evt.action?.id,
+            actionTitle: evt.action?.title,
+          });
+
+          const u = auth.currentUser;
+          if (!u) {
+            console.warn(`${logPrefix} blocked: not logged in`);
             onRoutingStatus?.("Trebuie să fii logat ca să setezi favorite.");
             return;
           }
 
           const feature = v.popup?.selectedFeature as Graphic | null;
-          const layerTitle = (feature?.layer as any)?.title ?? "unknown";
-          const oid = (feature?.attributes as any)?.OBJECTID ?? (feature?.attributes as any)?.objectid;
-          if (!feature || oid == null) {
+          const info = getFavoriteInfoForFeature(feature);
+          if (!info) {
+            console.warn(`${logPrefix} blocked: no selectedFeature or missing objectId`, {
+              hasSelectedFeature: Boolean(feature),
+              layerTitle: (feature?.layer as any)?.title,
+              attrs: feature?.attributes,
+            });
             onRoutingStatus?.("Nu pot determina ce punct ai selectat.");
             return;
           }
 
-          const favoriteId = `arcgis:${mapType}:${String(layerTitle)}:${String(oid)}`;
+          console.log(`${logPrefix} toggle requested`, {
+            uid: u.uid,
+            favoriteId: info.favoriteId,
+            layerTitle: info.layerTitle,
+            oid: info.oid,
+          });
 
           try {
             const userDoc = await getUserDoc(u.uid);
             const existing = userDoc?.favoriteZones ?? [];
-            const isFav = existing.includes(favoriteId);
+            const isFav = existing.includes(info.favoriteId);
+
+            console.log(`${logPrefix} current favorites`, {
+              isFav,
+              favoritesCount: existing.length,
+            });
 
             if (isFav) {
-              await removeFavoriteZoneId(u.uid, favoriteId);
+              console.log(`${logPrefix} removing favorite...`);
+              await removeFavoriteZoneId(u.uid, info.favoriteId);
+              console.log(`${logPrefix} removed favorite OK`);
               onRoutingStatus?.("Scos de la favorite.");
               (evt.action as any).title = "Adaugă la favorite";
+              setToggleTitle("Adaugă la favorite");
             } else {
-              await addFavoriteZoneId(u.uid, favoriteId);
+              console.log(`${logPrefix} adding favorite...`);
+              await addFavoriteZoneId(u.uid, info.favoriteId);
+              console.log(`${logPrefix} added favorite OK`);
               onRoutingStatus?.("Adăugat la favorite.");
               (evt.action as any).title = "Scoate de la favorite";
+              setToggleTitle("Scoate de la favorite");
             }
           } catch (e: any) {
-            onRoutingStatus?.(e?.message ?? String(e));
+            console.error(`${logPrefix} Firestore write failed`, e);
+            const msg = e?.message ?? String(e);
+            if (/blocked by client|err_blocked_by_client/i.test(msg)) {
+              onRoutingStatus?.("Cererea către Firestore a fost blocată de browser (adblock/extension). Dezactivează uBlock/AdBlock pentru acest site.");
+            } else {
+              onRoutingStatus?.(msg);
+            }
           }
-  });
+        };
 
-        handles.push(actionHandle as any);
+        const bindDomFavoriteActionFallback = () => {
+          try {
+            const container = (v.popup as any)?.container as HTMLElement | null | undefined;
+            if (!container) return false;
+
+            const el = container.querySelector(
+              '[data-action-id="toggle-favorite"], .esri-popup__action[data-action-id="toggle-favorite"]'
+            ) as HTMLElement | null;
+            if (!el) return false;
+
+            // Prevent multiple bindings when popup re-renders.
+            const anyEl = el as any;
+            if (anyEl.__favoriteBound) return true;
+            anyEl.__favoriteBound = true;
+
+            el.addEventListener("click", () => {
+              console.debug(`${logPrefix} DOM fallback click captured for toggle-favorite`);
+              void onTriggerAction({ action: { id: "toggle-favorite", title: (el as any)?.title } });
+            });
+
+            console.debug(`${logPrefix} DOM fallback bound for toggle-favorite`);
+            return true;
+          } catch (e) {
+            console.warn(`${logPrefix} DOM fallback bind failed`, e);
+            return false;
+          }
+        };
+
+        // Depending on ArcGIS runtime, `trigger-action` can be emitted by the Popup, PopupViewModel, or the View.
+        const popupAny: any = v.popup;
+        const popupOn = popupAny?.on;
+        const popupVmOn = popupAny?.viewModel?.on;
+        const viewOn = (v as any)?.on;
+
+        if (typeof popupOn === "function") {
+          console.debug(`${logPrefix} listening for trigger-action on popup`);
+          const actionHandle = popupOn.call(popupAny, "trigger-action", onTriggerAction);
+          handles.push(actionHandle as any);
+        } else if (typeof popupVmOn === "function") {
+          console.debug(`${logPrefix} listening for trigger-action on popup.viewModel`);
+          const actionHandle = popupVmOn.call(popupAny.viewModel, "trigger-action", onTriggerAction);
+          handles.push(actionHandle as any);
+        } else if (typeof viewOn === "function") {
+          console.debug(`${logPrefix} listening for trigger-action on view (fallback)`);
+          const actionHandle = viewOn.call(v, "trigger-action", onTriggerAction);
+          handles.push(actionHandle as any);
+        } else {
+          console.warn(`${logPrefix} cannot attach trigger-action listener (no .on found). Will try DOM fallback.`);
+        }
+
+        // As a last resort, bind a DOM click listener to the popup action button.
+        // This helps in cases where ArcGIS runtime doesn't expose trigger-action events.
+        // Try now and also after a popup selection change (popup UI re-renders).
+        bindDomFavoriteActionFallback();
 
         // Initial marker render (in case pickedLocation already exists)
         renderMarkers();
