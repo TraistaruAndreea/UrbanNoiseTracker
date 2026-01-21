@@ -63,3 +63,39 @@ button:focus-visible {
 button {
   background-color: #f9fafb;
 }
+
+/* ArcGIS popup favorites: color the star icon */
+.esri-popup__action[data-action-id="toggle-favorite"] .esri-popup__action-icon.favorite-on,
+.esri-popup__action[data-action-id="toggle-favorite"].favorite-on .esri-popup__action-icon,
+.esri-popup__action-icon.esri-icon-favorites.favorite-on,
+.esri-icon-favorites.favorite-on {
+  color: #f59e0b;
+}
+
+.esri-popup__action[data-action-id="toggle-favorite"].favorite-on {
+  color: #f59e0b;
+}
+
+/* Even more robust: rely on a data attribute set from JS (avoids DOM/class variations). */
+.esri-popup__action[data-action-id="toggle-favorite"][data-favorite="1"],
+.esri-popup__action[data-action-id="toggle-favorite"][data-favorite="1"] .esri-popup__action-icon,
+.esri-popup__action[data-action-id="toggle-favorite"][data-favorite="1"] .esri-icon-favorites {
+  color: #f59e0b !important;
+}
+
+.esri-popup__action[data-action-id="toggle-favorite"] .esri-popup__action-icon.favorite-off,
+.esri-popup__action[data-action-id="toggle-favorite"].favorite-off .esri-popup__action-icon,
+.esri-popup__action-icon.esri-icon-favorites.favorite-off,
+.esri-icon-favorites.favorite-off {
+  color: #6b7280;
+}
+
+.esri-popup__action[data-action-id="toggle-favorite"].favorite-off {
+  color: #6b7280;
+}
+
+.esri-popup__action[data-action-id="toggle-favorite"][data-favorite="0"],
+.esri-popup__action[data-action-id="toggle-favorite"][data-favorite="0"] .esri-popup__action-icon,
+.esri-popup__action[data-action-id="toggle-favorite"][data-favorite="0"] .esri-icon-favorites {
+  color: #6b7280 !important;
+}

@@ -374,7 +374,7 @@ export default function ArcGisMap({
             {
               id: "toggle-favorite",
               title: "Adaugă la favorite",
-              className: "esri-icon-favorites",
+              className: "esri-icon-favorites favorite-off",
             } as any,
           ],
           content: [
@@ -400,7 +400,7 @@ export default function ArcGisMap({
             {
               id: "toggle-favorite",
               title: "Adaugă la favorite",
-              className: "esri-icon-favorites",
+              className: "esri-icon-favorites favorite-off",
             } as any,
           ],
           content: [
@@ -684,12 +684,65 @@ export default function ArcGisMap({
 
         const logPrefix = `[favorites:${mapType}]`;
 
-        const setToggleTitle = (title: string) => {
+        // We bind BOTH trigger-action (when available) and a DOM click fallback.
+        // Some ArcGIS builds expose `.on` but don't emit `trigger-action` reliably.
+        // To prevent double-toggles when both fire, we guard the handler.
+        let toggleInFlight = false;
+        let lastToggleKey = "";
+        let lastToggleAt = 0;
+
+        const FAVORITE_ACTION_ID = "toggle-favorite";
+        const FAVORITE_ICON_CLASS = "esri-icon-favorites";
+        const FAVORITE_ON_CLASS = "favorite-on";
+        const FAVORITE_OFF_CLASS = "favorite-off";
+
+        const setToggleUi = (opts: { title?: string; isFavorite?: boolean }) => {
           try {
             // `actions` is a Collection; it supports `.find`.
             const actions: any = v.popup?.actions;
-            const toggle = actions?.find?.((a: any) => a?.id === "toggle-favorite");
-            if (toggle) toggle.title = title;
+            const toggle = actions?.find?.((a: any) => a?.id === FAVORITE_ACTION_ID);
+            if (toggle) {
+              if (typeof opts.title === "string") {
+                toggle.title = opts.title;
+              }
+              if (typeof opts.isFavorite === "boolean") {
+                toggle.className = `${FAVORITE_ICON_CLASS} ${
+                  opts.isFavorite ? FAVORITE_ON_CLASS : FAVORITE_OFF_CLASS
+                }`;
+              }
+            }
+
+            // Best-effort DOM sync (some ArcGIS builds don't rerender immediately).
+            try {
+              const container = (v.popup as any)?.container as HTMLElement | null | undefined;
+              const actionEl = container?.querySelector(
+                `[data-action-id="${FAVORITE_ACTION_ID}"], .esri-popup__action[data-action-id="${FAVORITE_ACTION_ID}"]`
+              ) as HTMLElement | null;
+              if (actionEl && typeof opts.isFavorite === "boolean") {
+                const favFlag = opts.isFavorite ? "1" : "0";
+                const favColor = opts.isFavorite ? "#f59e0b" : "#6b7280";
+
+                actionEl.setAttribute("data-favorite", opts.isFavorite ? "1" : "0");
+                actionEl.classList.toggle(FAVORITE_ON_CLASS, opts.isFavorite);
+                actionEl.classList.toggle(FAVORITE_OFF_CLASS, !opts.isFavorite);
+
+                // Inline style: most robust override for ArcGIS Online popup styling.
+                actionEl.style.color = favColor;
+
+                // Icon may be rendered with different classnames depending on ArcGIS build.
+                const iconEls = actionEl.querySelectorAll(
+                  ".esri-icon-favorites, .esri-popup__action-icon, .esri-icon"
+                ) as NodeListOf<HTMLElement>;
+                iconEls.forEach((iconEl) => {
+                  iconEl.setAttribute("data-favorite", favFlag);
+                  iconEl.classList.toggle(FAVORITE_ON_CLASS, opts.isFavorite);
+                  iconEl.classList.toggle(FAVORITE_OFF_CLASS, !opts.isFavorite);
+                  iconEl.style.color = favColor;
+                });
+              }
+            } catch {
+              // ignore
+            }
           } catch {
             // ignore
           }
@@ -743,7 +796,7 @@ export default function ArcGisMap({
           const u = auth.currentUser;
           if (!u) {
             console.warn(`${logPrefix} firebase auth.currentUser is null (not logged in?)`);
-            setToggleTitle("Adaugă la favorite");
+            setToggleUi({ title: "Adaugă la favorite", isFavorite: false });
             return;
           }
 
@@ -751,7 +804,10 @@ export default function ArcGisMap({
             const userDoc = await getUserDoc(u.uid);
             const existing = userDoc?.favoriteZones ?? [];
             const isFav = existing.includes(info.favoriteId);
-            setToggleTitle(isFav ? "Scoate de la favorite" : "Adaugă la favorite");
+            setToggleUi({
+              title: isFav ? "Scoate de la favorite" : "Adaugă la favorite",
+              isFavorite: isFav,
+            });
             console.debug(`${logPrefix} title synced`, {
               uid: u.uid,
               isFav,
@@ -771,22 +827,7 @@ export default function ArcGisMap({
             void syncFavoriteTitleToSelected(feature as Graphic | null);
             // Popup UI (including action buttons) may re-render; re-bind DOM fallback.
             setTimeout(() => {
-              try {
-                const container = (v.popup as any)?.container as HTMLElement | null | undefined;
-                const el = container?.querySelector(
-                  '[data-action-id="toggle-favorite"], .esri-popup__action[data-action-id="toggle-favorite"]'
-                ) as HTMLElement | null;
-                if (el && !(el as any).__favoriteBound) {
-                  (el as any).__favoriteBound = true;
-                  el.addEventListener("click", () => {
-                    console.debug(`${logPrefix} DOM fallback click captured for toggle-favorite`);
-                    void onTriggerAction({ action: { id: "toggle-favorite", title: (el as any)?.title } });
-                  });
-                  console.debug(`${logPrefix} DOM fallback bound for toggle-favorite (after selection change)`);
-                }
-              } catch {
-                // ignore
-              }
+              void bindDomFavoriteActionFallback();
             }, 0);
           });
           handles.push(selectedHandle as any);
@@ -797,7 +838,7 @@ export default function ArcGisMap({
         }
 
         const onTriggerAction = async (evt: any) => {
-          if (evt.action?.id !== "toggle-favorite") return;
+          if (evt.action?.id !== FAVORITE_ACTION_ID) return;
 
           console.log(`${logPrefix} trigger-action`, {
             actionId: evt.action?.id,
@@ -808,6 +849,7 @@ export default function ArcGisMap({
           if (!u) {
             console.warn(`${logPrefix} blocked: not logged in`);
             onRoutingStatus?.("Trebuie să fii logat ca să setezi favorite.");
+            setToggleUi({ title: "Adaugă la favorite", isFavorite: false });
             return;
           }
 
@@ -830,6 +872,22 @@ export default function ArcGisMap({
             oid: info.oid,
           });
 
+          // Guard against duplicate events (trigger-action + DOM click) firing for the same action.
+          const toggleKey = `${u.uid}:${info.favoriteId}`;
+          const now = Date.now();
+          if (toggleInFlight && toggleKey === lastToggleKey) {
+            console.debug(`${logPrefix} ignoring duplicate toggle (in-flight)`, { toggleKey });
+            return;
+          }
+          if (toggleKey === lastToggleKey && now - lastToggleAt < 800) {
+            console.debug(`${logPrefix} ignoring duplicate toggle (debounced)`, { toggleKey });
+            return;
+          }
+
+          toggleInFlight = true;
+          lastToggleKey = toggleKey;
+          lastToggleAt = now;
+
           try {
             const userDoc = await getUserDoc(u.uid);
             const existing = userDoc?.favoriteZones ?? [];
@@ -846,14 +904,14 @@ export default function ArcGisMap({
               console.log(`${logPrefix} removed favorite OK`);
               onRoutingStatus?.("Scos de la favorite.");
               (evt.action as any).title = "Adaugă la favorite";
-              setToggleTitle("Adaugă la favorite");
+              setToggleUi({ title: "Adaugă la favorite", isFavorite: false });
             } else {
               console.log(`${logPrefix} adding favorite...`);
               await addFavoriteZoneId(u.uid, info.favoriteId);
               console.log(`${logPrefix} added favorite OK`);
               onRoutingStatus?.("Adăugat la favorite.");
               (evt.action as any).title = "Scoate de la favorite";
-              setToggleTitle("Scoate de la favorite");
+              setToggleUi({ title: "Scoate de la favorite", isFavorite: true });
             }
           } catch (e: any) {
             console.error(`${logPrefix} Firestore write failed`, e);
@@ -863,6 +921,8 @@ export default function ArcGisMap({
             } else {
               onRoutingStatus?.(msg);
             }
+          } finally {
+            toggleInFlight = false;
           }
         };
 
@@ -919,7 +979,7 @@ export default function ArcGisMap({
         // As a last resort, bind a DOM click listener to the popup action button.
         // This helps in cases where ArcGIS runtime doesn't expose trigger-action events.
         // Try now and also after a popup selection change (popup UI re-renders).
-        bindDomFavoriteActionFallback();
+        void bindDomFavoriteActionFallback();
 
         // Initial marker render (in case pickedLocation already exists)
         renderMarkers();
